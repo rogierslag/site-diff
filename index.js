@@ -28,7 +28,7 @@ function workWorkWork(req, res) {
 		return;
 	}
 
-	log(INFO, `Fetching ${decodedUrl}`)
+	log(INFO, `Fetching ${decodedUrl}`);
 	const urlToFetch = PRERENDER_URL ? `http://${PRERENDER_URL}/${encodeURIComponent(decodedUrl)}` : decodedUrl;
 	const selector = decodeURIComponent(req.query.selector);
 	const suppliedHash = req.query.hash;
