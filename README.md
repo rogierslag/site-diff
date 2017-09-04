@@ -7,6 +7,13 @@
 Pull a web page,
 select a part based on a selector, and check whether it changed with respect to the previous hash.
 
+To query without a previous hash:
+`http://site-diff/changed?url=https%3A%2F%2Fmagnet.me%2F&selector=body`
+
+To query with a previous hash:
+`http://site-diff/changed?url=https%3A%2F%2Fmagnet.me%2F&selector=body&hash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+
+
 Then return a json object so the caller can see whether it should take action.
 
 ```json
