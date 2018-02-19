@@ -33,12 +33,14 @@ function workWorkWork(req, res) {
 	const selector = decodeURIComponent(req.query.selector);
 	const suppliedHash = req.query.hash;
 
-	cheerioReq(urlToFetch, (err, $) => {
+	cheerioReq(urlToFetch, (err, $, _res, body) => {
 		if (err) {
 			log(ERR, err);
 			res.status(406).end();
 			return;
 		}
+		log(INFO, `Got response body ${body}`);
+
 		log(INFO, `Getting selector ${selector}`);
 		const element = $(selector).eq(0);
 
