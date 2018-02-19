@@ -33,36 +33,49 @@ function workWorkWork(req, res) {
 	const selector = decodeURIComponent(req.query.selector);
 	const suppliedHash = req.query.hash;
 
+	matchMatchMatch({urlToFetch, selector, suppliedHash, decodedUrl}, res);
+}
+
+function matchMatchMatch({urlToFetch, selector, suppliedHash, decodedUrl}, res, count = 0) {
 	cheerioReq(urlToFetch, (err, $, _res, body) => {
 		if (err) {
 			log(ERR, err);
 			res.status(406).end();
 			return;
 		}
-		log(INFO, `Got response body ${body}`);
 
-		log(INFO, `Getting selector ${selector}`);
+		const responseStatusCode = _res.statusCode;
+		if (PRERENDER_URL && responseStatusCode >= 500) {
+			if (count < 4) {
+				log(WARN, `Prerender failure (#${responseStatusCode}) on ${decodedUrl}, retrying`);
+				matchMatchMatch({urlToFetch, selector, suppliedHash, decodedUrl}, res, count + 1)
+			} else {
+				res.status(406).end('After multiple retries we still did not get any data');
+			}
+			return;
+		}
+
+		log(INFO, `Getting selector ${selector} on ${decodedUrl}`);
 		const element = $(selector).eq(0);
 
 		const text = element.text().trim();
-		log(INFO, `Got text: '${text}'`);
+		log(INFO, `Got text: '${text}' on ${decodedUrl}`);
 
 		const newHash = sha256(text);
-		log(INFO, `Found sha ${newHash}`);
+		log(INFO, `Found sha ${newHash} on ${decodedUrl}`);
 		res.json({
-			hashes: {
-				previous: suppliedHash,
-				new: newHash
+			hashes : {
+				previous : suppliedHash,
+				new : newHash
 			},
-			changed: newHash !== suppliedHash,
-			empty: text === null,
-			found: text,
-			prerendered: !!process.env.PRERENDER_URL,
+			changed : newHash !== suppliedHash,
+			empty : text === null,
+			found : text,
+			prerendered : !!process.env.PRERENDER_URL,
 			selector,
 			url : decodedUrl
 		});
 	});
-
 }
 
 app.get('/changed', workWorkWork);
