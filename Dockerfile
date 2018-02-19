@@ -1,4 +1,4 @@
-FROM node:6
+FROM node:8.9
 MAINTAINER Rogier Slag
 
 EXPOSE 7070
@@ -9,8 +9,9 @@ RUN chown -R luser.luser /home/luser
 RUN npm install -g pm2
 
 RUN mkdir /service
+ADD yarn.lock /service/
 ADD package.json /service/
-RUN cd /service && npm install
+RUN cd /service && yarn install
 ADD index.js /service/
 
 USER luser
