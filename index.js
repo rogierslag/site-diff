@@ -1,6 +1,7 @@
 const express = require('express');
-const cheerioReq = require("cheerio-req");
-const sha256 = require("js-sha256").sha256;
+const request = require('request');
+const Cheerio = require('cheerio');
+const sha256 = require('js-sha256').sha256;
 const URL = require('url');
 const app = express();
 
@@ -45,25 +46,23 @@ function workWorkWork(req, res) {
 	}
 
 	log(DEBUG, `Fetching ${decodedUrl}`);
-	const urlToFetch = PRERENDER_URL ? `http://${PRERENDER_URL}/${encodeURIComponent(decodedUrl)}` : decodedUrl;
 	const selector = decodeURIComponent(req.query.selector);
 	const suppliedHash = req.query.hash;
 
-	matchMatchMatch({urlToFetch, selector, suppliedHash, decodedUrl}, res);
+	matchMatchMatch({urlToFetch : decodedUrl, selector, suppliedHash, decodedUrl}, res);
 }
 
 function matchMatchMatch({urlToFetch, selector, suppliedHash, decodedUrl}, res, count = 0) {
-	cheerioReq(urlToFetch, (err, $, upstreamResponse) => {
+	const uri = PRERENDER_URL ? `http://${PRERENDER_URL}/${encodeURIComponent(urlToFetch)}` : urlToFetch;
+	log(DEBUG, `Will request ${uri} for ${decodedUrl}`);
+	request({method : 'GET', uri, followRedirect : false}, (err, upstreamResponse, body) => {
 		if (err) {
 			log(ERR, err);
+			console.error(upstreamResponse, body);
 			res.status(406).end();
 			return;
 		}
-
-		const upstreamContentType = upstreamResponse.headers['content-type'];
-		if (!upstreamContentType || !upstreamContentType.startsWith('text/')) {
-			log(WARN, `Upstream response might not be parsable due to different content-type: '${upstreamContentType}'`);
-		}
+		const $ = Cheerio.load(body);
 
 		const responseStatusCode = upstreamResponse.statusCode;
 		if (PRERENDER_URL && responseStatusCode >= 500) {
@@ -74,27 +73,41 @@ function matchMatchMatch({urlToFetch, selector, suppliedHash, decodedUrl}, res, 
 				res.status(406).end('After multiple retries we still did not get any data');
 			}
 			return;
+		} else if (responseStatusCode < 400 && responseStatusCode >= 300) {
+			const newLocation = upstreamResponse.headers['location'];
+			log(INFO, `Encountered a ${responseStatusCode} redirect from ${urlToFetch} to ${newLocation} for ${decodedUrl}`);
+			matchMatchMatch({urlToFetch : newLocation, selector, suppliedHash, decodedUrl}, res, count);
+			return;
+		}
+
+		const upstreamContentType = upstreamResponse.headers['content-type'];
+		if (!upstreamContentType || !upstreamContentType.startsWith('text/')) {
+			log(WARN, `Upstream response might not be parsable due to different content-type: '${upstreamContentType}'`);
 		}
 
 		log(DEBUG, `Getting selector ${selector} on ${decodedUrl}`);
-		const element = $(selector).eq(0);
+		const element = $(selector);
 
-		const text = element.text().trim();
+		if (element.length > 1) {
+			log(WARN, `Multiple matching selectors for selector '${selector}' on ${decodedUrl}. Picking the first.`);
+		}
+		const text = element.eq(0).text().trim();
 		log(DEBUG, `Got text: '${text}' on ${decodedUrl}`);
 
 		const newHash = sha256(text);
-		log(DEBUG, `Found sha ${newHash} on ${decodedUrl}`);
+		log(INFO, `Found sha ${newHash} on ${decodedUrl}`);
 		res.json({
 			hashes : {
 				previous : suppliedHash,
 				new : newHash
 			},
 			changed : newHash !== suppliedHash,
-			empty : text === null,
+			empty : element.length !== 1,
 			found : text,
-			prerendered : !!process.env.PRERENDER_URL,
+			prerendered : !!PRERENDER_URL,
 			selector,
-			url : decodedUrl
+			url : decodedUrl,
+			finalUrl : urlToFetch
 		});
 	});
 }

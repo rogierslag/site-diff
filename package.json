@@ -11,14 +11,14 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "cheerio-req": "^1.1.4",
+    "cheerio": "^1.0.0-rc.2",
     "express": "^4.14.1",
     "js-sha256": "^0.6.0",
-    "request": "^2.81.0",
+    "request": "^2.83.0",
     "url": "^0.11.0"
   },
   "devDependencies": {
     "eslint": "^3.15.0"
   },
-  "private":false
+  "private": false
 }
