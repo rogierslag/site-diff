@@ -49,10 +49,10 @@ function workWorkWork(req, res) {
 	const selector = decodeURIComponent(req.query.selector);
 	const suppliedHash = req.query.hash;
 
-	matchMatchMatch({urlToFetch : decodedUrl, selector, suppliedHash, decodedUrl}, res);
+	matchMatchMatch(decodedUrl, {selector, suppliedHash, decodedUrl}, res);
 }
 
-function matchMatchMatch({urlToFetch, selector, suppliedHash, decodedUrl}, res, count = 0) {
+function matchMatchMatch(urlToFetch, {selector, suppliedHash, decodedUrl}, res, count = 0) {
 	const uri = PRERENDER_URL ? `http://${PRERENDER_URL}/${encodeURIComponent(urlToFetch)}` : urlToFetch;
 	log(DEBUG, `Will request ${uri} for ${decodedUrl}`);
 	request({method : 'GET', uri, followRedirect : false}, (err, upstreamResponse, body) => {
@@ -68,15 +68,16 @@ function matchMatchMatch({urlToFetch, selector, suppliedHash, decodedUrl}, res, 
 		if (PRERENDER_URL && responseStatusCode >= 500) {
 			if (count < 4) {
 				log(WARN, `Prerender failure (#${responseStatusCode}) on ${decodedUrl}, retrying`);
-				matchMatchMatch({urlToFetch, selector, suppliedHash, decodedUrl}, res, count + 1)
+				matchMatchMatch(urlToFetch, {selector, suppliedHash, decodedUrl}, res, count + 1)
 			} else {
+				log(ERR, `Prerender failed multiple times in a row. Bailing the request for ${decodedUrl}.`);
 				res.status(406).end('After multiple retries we still did not get any data');
 			}
 			return;
 		} else if (responseStatusCode < 400 && responseStatusCode >= 300) {
 			const newLocation = upstreamResponse.headers['location'];
 			log(INFO, `Encountered a ${responseStatusCode} redirect from ${urlToFetch} to ${newLocation} for ${decodedUrl}`);
-			matchMatchMatch({urlToFetch : newLocation, selector, suppliedHash, decodedUrl}, res, count);
+			matchMatchMatch(newLocation, {selector, suppliedHash, decodedUrl}, res, count);
 			return;
 		}
 
