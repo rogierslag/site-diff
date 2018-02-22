@@ -1,4 +1,4 @@
-![Magnet.me](https://cdn.magnet.me/images/logo-2015-full_2x.png)
+[![Magnet.me](https://cdn.magnet.me/images/logo-2015-full_2x.png)](https://magnet.me)
 
 [![Dependency Status](https://gemnasium.com/badges/github.com/magnetme/site-diff.svg)](https://gemnasium.com/github.com/magnetme/site-diff)
 
